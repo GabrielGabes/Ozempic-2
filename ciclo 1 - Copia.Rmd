@@ -1,0 +1,359 @@
+```{r}
+
+df <- read_excel("banco de dados usg final2 oficial alterado.xlsx")
+df
+
+df$residuo = NULL
+
+df$asa[df$asa == 'i'] = 'I'
+
+df$dias_cat = df$dias
+df$dias_cat[is.na(df$dias_cat)] = 0
+df$dias_cat = df$dias_cat %>% as.factor()
+
+df$dias_cat2 = '0.no_use'
+df$dias_cat2[df$dias >= 1 & df$dias <= 7] = '1.1a7d'
+df$dias_cat2[df$dias > 8] = '2.8a10d'
+
+```
+
+```{r Arrumando colunas categoricas e numericas}
+
+for (coluna in names(df)){
+  classe = class(df[[coluna]])
+  levels = df[[coluna]] %>% as.factor() %>% levels()
+  qtd_levels = levels %>% length()
+  
+  if (classe == 'numeric'){
+    if (qtd_levels <= 2){
+      df[[coluna]] = df[[coluna]] %>% as.factor()
+      texto = paste('numeric for categoric:', coluna)
+      print(texto)
+    }
+  }
+  else{
+    if (qtd_levels >= 11){
+      df[[coluna]] = df[[coluna]] %>% as.numeric()
+      texto = paste('categoric for numeric:', coluna)
+      print(texto)
+    }
+  }
+}
+```
+
+```{r Tabela 1}
+
+colunas = c('idade','sexo','imc','asa','dm','altobaixo','solido','liqu')
+
+coluna_analisada = 'ozempic'
+
+tabelona = summary_numerico_por_grupo_n_parametrico(df, "idade", coluna_analisada)[FALSE, ]
+
+for (coluna in colunas){
+  classe = class(df[[coluna]])[1]
+  if (classe == "numeric"){
+    if (normalidade_por_grupo_criterio(df, coluna, coluna_analisada) == TRUE){
+      tabelinha = summary_numerico_por_grupo_parametrico(df, coluna, coluna_analisada)
+    }
+    else{
+      tabelinha = summary_numerico_por_grupo_n_parametrico(df, coluna, coluna_analisada)
+    }
+  }
+  else if (classe == 'character' | classe == 'factor'){
+    tabelinha = conti(df, coluna_analisada, coluna, "col")
+  }
+  tabelona = rbind(tabelona, tabelinha)
+}
+colnames(tabelona)[colnames(tabelona) == "Overall"] = paste0("Overall (n=", nrow(df[complete.cases(df[[coluna_analisada]]), ]), ")")
+niveis = levels(as.factor(df[[coluna_analisada]]))
+for (i in 1:length(niveis)){
+  nivel = niveis[i]
+  colnames(tabelona)[colnames(tabelona) == nivel] = paste0(nivel, " (n=", table(df[[coluna_analisada]])[i], ")")}
+
+tabelona %>% capture()
+
+```
+
+```{r Tabela 2}
+colunas = c('idade','sexo','imc','asa','dm','ozempic','dias','dias_cat','dias_cat2')
+coluna_analisada = 'altobaixo'
+
+tabelona = summary_numerico_por_grupo_n_parametrico("idade", coluna_analisada)[FALSE, ]
+
+for (coluna in colunas){
+  classe = class(df[[coluna]])[1]
+  if (classe == "numeric"){
+    if (normalidade_por_grupo_criterio(df, coluna,coluna_analisada) == TRUE){
+      tabelinha = summary_numerico_por_grupo_parametrico(df, coluna, coluna_analisada)
+    }
+    else{
+      tabelinha = summary_numerico_por_grupo_n_parametrico(df, coluna, coluna_analisada)
+    }
+  }
+  else if (classe == 'character' | classe == 'factor'){
+    tabelinha = conti(df, coluna_analisada, coluna, "col")
+  }
+  tabelona = rbind(tabelona, tabelinha)
+}
+colnames(tabelona)[colnames(tabelona) == "Overall"] = paste0("Overall (n=", nrow(df[complete.cases(df[[coluna_analisada]]), ]), ")")
+niveis = levels(as.factor(df[[coluna_analisada]]))
+for (i in 1:length(niveis)){
+  nivel = niveis[i]
+  colnames(tabelona)[colnames(tabelona) == nivel] = paste0(nivel, " (n=", table(df[[coluna_analisada]])[i], ")")}
+tabelona %>% capture()
+
+####################################################################################
+
+tabelona = analise_mod(glm(df[[coluna_analisada]]~df[['idade']], family='binomial'))
+
+tabelona$indice = NA
+tabelona = tabelona[, c("indice", setdiff(names(tabelona), "indice"))]
+tabelona = tabelona[FALSE, ]
+
+for (coluna in colunas){
+  tabelinha = analise_mod(glm(df[[coluna_analisada]]~df[[coluna]], family='binomial'))
+  
+  tabelinha$indice = row.names(tabelinha)
+  tabelinha = tabelinha[, c("indice", setdiff(names(tabelinha), "indice"))]
+  
+  row.names(tabelinha) = 1:nrow(tabelinha)
+  
+  if (class(df[[coluna]]) != "numeric"){
+    tabelinha = rbind(NA, NA, tabelinha) #adicionando linha
+    tabelinha[["indice"]] = c(df, coluna,levels(as.factor(df[[coluna]])))
+  }
+  else{
+    tabelinha[["indice"]] = coluna
+  }
+  tabelona = rbind(tabelona, tabelinha)
+}
+tabelona$`Pr(>|z|)` = sapply(tabelona$`Pr(>|z|)`, function(x) ifelse(is.na(x), NA, retorne_p(x)))
+tabelona = tabelona[,c('indice','ODDS','Pr(>|z|)')]
+tabelona %>% capture()
+```
+
+```{r}
+colSums(is.na(df[, c("idade", "sexo", "imc", "dm", 'dias', "dias_cat", 'dias_cat2')]))
+```
+```{r}
+cont(df, 'asa')
+df$asa[df$asa == 'I'] = 1
+df$asa[df$asa == 'II'] = 2
+df$asa[df$asa == 'III'] = 3
+cont(df, 'asa')
+df$asa = as.numeric(df$asa)
+```
+
+
+```{r}
+library(cobalt)
+library(WeightIt)
+
+dff = df
+
+dff$ozempic = ifelse(dff$ozempic == '1', 1, 0)
+dff$sexo = ifelse(dff$sexo == 'M', 1, 0)
+dff$dm = ifelse(dff$dm == '1', 1, 0)
+
+ps_ipw <- weightit(ozempic~idade+sexo+imc+dm+asa, data = df, estimand = "ATE")
+hist(ps_ipw$weights)
+
+ps_ipw <- weightit(ozempic~idade+sexo+imc+dm+asa, data = dff, estimand = "ATE")
+hist(ps_ipw$weights)
+
+#####################################################
+
+dados = bal.tab(ps_ipw, un = TRUE)
+df_balance = dados$Balance
+
+df_balance = df_balance %>% mutate(variable = rownames(.))
+df_balance$Type = NULL
+df_balance = df_balance[-1, ]
+
+df_balance$variable
+df_balance = na.omit(df_balance)
+variavels = c("Age (Years)","Sex","BMI (kg.m²)","Diabetes Mellitus",'ASA')
+
+df_balance$variable = variavels
+df_balance
+
+long_data <- tidyr::gather(df_balance, key = "type", value = "value", -variable)
+long_data
+
+ggplot(long_data, aes(y = reorder(variable, value, FUN = mean), x = value, fill = type)) +
+  geom_point(stroke = 1, shape = 21, alpha=0.7, size=3) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", color = "black", size = 0.75) +
+  geom_vline(xintercept = -0.1, linetype = "dashed", color = "black", size = 0.75) +
+  theme_bw() + 
+  theme(legend.position="bottom", plot.title = element_text(hjust = 0.5)) + 
+  labs(title = "Covariate Balancing",
+       y = "Covariates",
+       x = "Standardized Difference (%)",
+       fill = "") +
+  scale_fill_discrete(labels=c("Weighted","Unadjusted")) # +
+  #scale_x_continuous(breaks=seq(from = -0.3, to = 0.3, by = 0.10), limits = c(-0.75, 0.25))
+
+ggsave("balanceamento_variavels.png", height=15, width=15, units="cm", dpi= 600)
+
+
+```
+
+```{r}
+
+analise_mod(glm(altobaixo~ozempic, family='binomial', data=df, weights = ps_ipw$weights))
+
+analise_mod(glm(altobaixo~dias, family='binomial', data=df, weights = ps_ipw$weights))
+analise_mod(glm(altobaixo~dias_cat, family='binomial', data=df, weights = ps_ipw$weights))
+analise_mod(glm(altobaixo~dias_cat2, family='binomial', data=df, weights = ps_ipw$weights))
+
+analise_mod(glm(altobaixo~ozempic, family='binomial', data=df, weights = ps_ipw$weights))
+
+modelo = analise_mod(glm(altobaixo~ozempic+idade+imc+sexo+dm+as.factor(asa), family='binomial', data=df, weights = ps_ipw$weights))
+modelo
+
+modelo = analise_mod(glm(altobaixo~ozempic+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights = ps_ipw$weights))
+modelo ############### USAR
+
+
+##########
+step(modelo, direction = "backward", test = "F")
+```
+
+
+```{r ENTER WARD}
+glm(altobaixo~ozempic+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights = ps_ipw$weights) %>% analise_mod() %>% capture()
+
+glm(altobaixo~dias+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights = ps_ipw$weights) %>% analise_mod() %>% capture()
+
+glm(altobaixo~as.factor(dias_cat)+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights = ps_ipw$weights) %>% analise_mod() %>% capture()
+
+glm(altobaixo~as.factor(dias_cat2)+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights = ps_ipw$weights) %>% analise_mod() %>% capture()
+
+```
+
+```{r}
+#df$altobaixo = ifelse(df$altobaixo == 1, 'Residual', 'No Residual')
+box_vin_jit(df, 'dias', 'altobaixo') +
+  labs(subtitle=NULL, y='Time intervals of semaglutide interruption (Days)')
+
+ggsave("resido_vs_dias.png", height=10, width=10.5, units="cm", dpi= 600)
+
+```
+
+```{r}
+conti_grafi(df, 'altobaixo', 'dias_cat2', 'row') + 
+  scale_fill_discrete(labels = c('No Semaglutide use','1-7 Days','8-10 Days')) +
+  labs(subtitle = NULL)
+
+ggsave("altobaixo_vs_dias_cat2.png", height=10, width=15, units="cm", dpi= 600)
+```
+
+
+
+```{r}
+cont(df, 'altobaixo')
+cont_grafi(df, 'altobaixo')
+
+conti(df, 'altobaixo', 'dias_cat2', 'row')
+conti_grafi(df, 'altobaixo', 'dias_cat2', 'row')
+
+conti(df, 'altobaixo', 'dias_cat2', 'col')
+conti_grafi(df, 'altobaixo', 'dias_cat2', 'col')
+
+box_vin_jit(df, 'dias', 'altobaixo') #usar esse grafico
+
+dinamite(df, 'dias', 'altobaixo', 'sexo')
+
+densidade_grafi(df, 'dias', 'altobaixo')
+```
+
+
+```{r}
+
+tabela = df %>% filter(!is.na(dias)) %>% group_by(dias, altobaixo) %>% summarise(n = n()) %>% mutate(Freq = round(n/sum(n)*100, 2)) %>% ungroup() %>% filter(altobaixo == 1)
+
+# Para correlação de Pearson
+teste_pearson <- cor.test(tabela$dias, tabela$Freq, method="pearson")
+print(paste0("Correlação de Pearson: ", teste_pearson$estimate))
+print(paste0("Valor-p: ", teste_pearson$p.value))
+
+# Para correlação de Spearman
+teste_spearman <- cor.test(tabela$dias, tabela$Freq, method="spearman")
+print(paste0("Correlação de Spearman: ", teste_spearman$estimate))
+print(paste0("Valor-p: ", teste_spearman$p.value))
+
+lm(tabela$dias~tabela$Freq) %>% summary()
+
+ggplot(tabela, aes(x=dias, y=Freq)) + 
+  # Grafico
+  geom_point() + geom_smooth(method='lm') +
+  # Outros
+  theme_bw() + theme(legend.position = "bottom") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_y_continuous(limits = c(0, 100), breaks=seq(from=0, to=100, by=10)) +
+  scale_x_continuous(limits = c(1, 10), breaks=seq(from=0, to=100, by=1)) +
+  labs(x='Days', y='Frequency (%)', title=NULL, fill=NULL)
+
+#ggsave("altobaixo_vs_dias_cat.png", height=10, width=15, units="cm", dpi= 600)
+```
+
+```{r}
+
+```
+
+```{r}
+ 
+```
+
+```{r}
+```
+
+
+```{r}
+```
+
+```{r}
+
+```
+
+```{r}
+ 
+```
+
+```{r}
+```
+
+
+```{r}
+```
+
+```{r}
+
+```
+
+```{r}
+ 
+```
+
+```{r}
+```
+
+
+```{r}
+```
+
+```{r}
+
+```
+
+```{r}
+ 
+```
+
+```{r}
+```
+
+
+```{r}
+```
+

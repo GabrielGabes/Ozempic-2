@@ -1,0 +1,855 @@
+```{r}
+arquivo = '(UNICO !!!) banco de dados usg - ALTERADO 6-06 PARA RESUBMETER'
+df = read_excel(paste0(arquivo,".xlsx"))
+
+df$Atendimento = NULL
+
+df = df %>% filter(dm != 1)
+df$dm = NULL
+
+df$residuo = NULL
+
+df$asa[df$asa == 'i'] = 'I'
+df$asa[df$asa == 'III'] = 'II'
+
+#####################################################################################
+
+df$dias %>% summary()
+
+df$dias_cat0 = factor(df$dias, levels = as.character(1:10))
+df$dias_cat0 %>% table()
+
+df$dias_cat = df$dias
+df$dias_cat[is.na(df$dias_cat)] = 0
+df$dias_cat = factor(df$dias_cat, levels = as.character(0:10))
+df$dias_cat %>% table()
+
+df$dias_cat2 = '0.no_use'
+df$dias_cat2[df$dias >= 1 & df$dias <= 7] = '1.1a7d'
+df$dias_cat2[df$dias >= 8] = '2.8a10d'
+df$dias_cat2 = df$dias_cat2 %>% as.factor()
+df$dias_cat2 %>% table()
+
+df$dias_cat3 = NA
+df$dias_cat3[df$dias >= 1 & df$dias <= 7] = '1.1a7d'
+df$dias_cat3[df$dias >= 8] = '2.8a10d'
+df$dias_cat3 = df$dias_cat3 %>% as.factor()
+df$dias_cat3 %>% table()
+
+labels = c('1.1a2', '2.2a4', '3.4a6', '4.6a8', '5.8a10')
+df$dias_2em2 = cut(df$dias, breaks = seq(0,10,2), labels = labels, right = TRUE)
+df$dias_2em2 %>% table()
+
+df$dias_2em2_2 = df$dias_2em2 %>% as.character()
+df$dias_2em2_2[is.na(df$dias_2em2_2)] = '0'
+df$dias_2em2_2 = df$dias_2em2_2 %>% as.factor()
+df$dias_2em2_2 %>% table()
+
+labels = c('1.1a3', '2.3a6', '3.6a9', '4.9a10')
+df$dias_3em3 = cut(df$dias, breaks = c(seq(0,10,3), 11), labels = labels, right = TRUE)
+df$dias_3em3 %>% table()
+
+df$dias_3em3_2 = df$dias_3em3 %>% as.character()
+df$dias_3em3_2[is.na(df$dias_3em3_2)] = '0'
+df$dias_3em3_2 = df$dias_3em3_2 %>% as.factor()
+df$dias_3em3_2 %>% table()
+
+colunas_dias = c('ozempic','dias','dias_cat0','dias_cat','dias_cat2','dias_cat3','dias_2em2','dias_2em2_2','dias_3em3','dias_3em3_2')
+
+##################################
+
+df$idade_10em10 = NA
+df$idade_10em10[df$idade < 30] = '0. ≤29'
+df$idade_10em10[df$idade >= 30 & df$idade < 40] = '1. 30-39'
+df$idade_10em10[df$idade >= 40 & df$idade < 50] = '2. 40-49'
+df$idade_10em10[df$idade >= 50 & df$idade < 60] = '3. 50-59'
+df$idade_10em10[df$idade >= 60] = '4. ≥60'
+df$idade_10em10 %>% table()
+
+df$idade_geracao = NA
+df$idade_geracao[df$idade < 35] = '0. Y (21-34)'
+df$idade_geracao[df$idade >= 35 & df$idade < 50] = '1. X (35-49)'
+df$idade_geracao[df$idade >= 50 & df$idade < 65] = '2. Baby Boomers (50-64)'
+df$idade_geracao[df$idade >= 65] = '3. Silenciosa (≥65)'
+df$idade_geracao %>% table()
+
+#df$idade_20 = ifelse(df$idade >= 20, '1. ≥20', '0. <20') %>% as.factor()
+#df$idade_20 %>% table()
+df$idade_30 = ifelse(df$idade >= 30, '1. ≥30', '0. <30') %>% as.factor()
+df$idade_30 %>% table()
+df$idade_40 = ifelse(df$idade >= 40, '1. ≥40', '0. <40') %>% as.factor()
+df$idade_40 %>% table()
+df$idade_50 = ifelse(df$idade >= 50, '1. ≥50', '0. <50') %>% as.factor()
+df$idade_50 %>% table()
+df$idade_60 = ifelse(df$idade >= 60, '1. ≥60', '0. <60') %>% as.factor()
+df$idade_60 %>% table()
+
+colunas_idade = c('idade','idade_10em10','idade_geracao','idade_30','idade_40','idade_50','idade_60')
+
+##################################
+
+df$imc = df$imc %>% as.numeric()
+df$imc %>% summary()
+
+df$imc_cat = NA
+df$imc_cat[df$imc <= 18.5] = '0. Abaixo de 18,5' # baixo
+df$imc_cat[df$imc > 18.5 & df$imc < 25] = '1. 18,6 - 24.9' # normal ideal
+df$imc_cat[df$imc >= 25 & df$imc < 30] = '2. 25 - 29.9' # sobrepeso
+df$imc_cat[df$imc >= 30 & df$imc < 35] = '3. 30 - 34.9' # obesidade 1
+df$imc_cat[df$imc >= 35 & df$imc < 40] = '4. 35 - 39.9' # obesidade 2
+df$imc_cat[df$imc >= 40 ] = '5. Acima de 40' # obesidade 3
+df$imc_cat %>% table()
+
+#df$imc_cat_menor18 = ifelse(df$imc_cat == '0. Abaixo de 18,5', 1, 0)
+#df$imc_cat_menor18 %>% table()
+df$imc_cat_18a25 = ifelse(df$imc_cat == '1. 18,6 - 24.9', 1, 0)
+df$imc_cat_18a25 %>% table()
+df$imc_cat_25a30 = ifelse(df$imc_cat == '2. 25 - 29.9', 1, 0)
+df$imc_cat_25a30 %>% table()
+df$imc_cat_30a35 = ifelse(df$imc_cat == '3. 30 - 34.9', 1, 0)
+df$imc_cat_30a35 %>% table()
+df$imc_cat_35a40 = ifelse(df$imc_cat == '4. 35 - 39.9', 1, 0)
+df$imc_cat_35a40 %>% table()
+#df$imc_cat_acima40 = ifelse(df$imc_cat == '5. Acima de 40', 1, 0)
+#df$imc_cat_acima40 %>% table()
+
+df$imc_cat_maior18 = ifelse(df$imc_cat >= 186, 1, 0)
+df$imc_cat_maior25 = ifelse(df$imc_cat >= 25, 1, 0)
+df$imc_cat_maior30 = ifelse(df$imc_cat >= 30, 1, 0)
+df$imc_cat_maior35 = ifelse(df$imc_cat >= 35, 1, 0)
+df$imc_cat_maiorAcima = ifelse(df$imc_cat >= 40, 1, 0)
+
+colunas_imc = c('imc','imc_cat','imc_cat_menor18','imc_cat_18a25','imc_cat_25a30','imc_cat_30a35','imc_cat_35a40')
+
+#####################################################################################
+
+# Arrumando colunas categoricas e numerica}
+for (coluna in names(df)){
+  classe = class(df[[coluna]])
+  levels = df[[coluna]] %>% as.factor() %>% levels()
+  qtd_levels = levels %>% length()
+  
+  if (classe == 'numeric'){
+    if (qtd_levels <= 2){
+      df[[coluna]] = df[[coluna]] %>% as.factor()
+      texto = paste('numeric for categoric:', coluna)
+      print(texto)
+    }
+  }
+  else{
+    if (qtd_levels >= 11 & regexpr("cat", coluna)[1] == -1){
+      df[[coluna]] = df[[coluna]] %>% as.numeric()
+      texto = paste('categoric for numeric:', coluna)
+      print(texto)
+    }
+    else{
+      df[[coluna]] = df[[coluna]] %>% as.factor()
+      texto = paste('categoric for factor:', coluna)
+      print(texto)
+    }
+  }
+}
+
+# df$dias_cat %>% table()
+# df = df %>% filter(dias_cat != 8)
+# df = df %>% filter(dias_cat != 9)
+# df = df %>% filter(dias_cat != 10)
+# df$dias_cat %>% table()
+```
+
+
+```{r Tabela 1}
+
+coluna_analisada = 'ozempic'
+
+colunas = names(df)
+colunas = colunas[!colunas %in% c(coluna_analisada, colunas_dias, 'imc_cat_menor18')]
+print(colunas)
+
+tabelona = summary_numerico_por_grupo_n_parametrico(df, "idade", coluna_analisada)[FALSE, ]
+
+for (coluna in colunas){
+  classe = class(df[[coluna]])[1]
+  if (classe == "numeric"){
+    tabelinha = summary_numerico_por_grupo_n_parametrico(df, coluna, coluna_analisada)
+  }
+  else if (classe == 'character' | classe == 'factor'){
+    tabelinha = conti(df, coluna_analisada, coluna, "col")
+  }
+  tabelona = rbind(tabelona, tabelinha)
+}
+colnames(tabelona)[colnames(tabelona) == "Overall"] = paste0("Overall (n=", nrow(df[complete.cases(df[[coluna_analisada]]), ]), ")")
+niveis = levels(as.factor(df[[coluna_analisada]]))
+for (i in 1:length(niveis)){
+  nivel = niveis[i]
+  colnames(tabelona)[colnames(tabelona) == nivel] = paste0(nivel, " (n=", table(df[[coluna_analisada]])[i], ")")}
+
+tabelona %>% capture()
+
+#table(df$imc_cat_menor18, df$ozempic)
+```
+
+
+```{r Tabela 2}
+coluna_analisada = 'altobaixo'
+
+colunas = names(df)
+colunas = colunas[!colunas %in% c(coluna_analisada,'imc_cat_menor18')]
+print(colunas)
+
+tabelona = summary_numerico_por_grupo_n_parametrico(df, "idade", coluna_analisada)[FALSE, ]
+
+for (coluna in colunas){
+  classe = class(df[[coluna]])[1]
+  if (classe == "numeric"){
+    tabelinha = summary_numerico_por_grupo_n_parametrico(df, coluna, coluna_analisada)
+  }
+  else if (classe == 'character' | classe == 'factor'){
+    tabelinha = conti(df, coluna_analisada, coluna, "col")
+  }
+  tabelona = rbind(tabelona, tabelinha)
+}
+colnames(tabelona)[colnames(tabelona) == "Overall"] = paste0("Overall (n=", nrow(df[complete.cases(df[[coluna_analisada]]), ]), ")")
+niveis = levels(as.factor(df[[coluna_analisada]]))
+for (i in 1:length(niveis)){
+  nivel = niveis[i]
+  colnames(tabelona)[colnames(tabelona) == nivel] = paste0(nivel, " (n=", table(df[[coluna_analisada]])[i], ")")}
+tabelona %>% capture()
+
+####################################################################################
+
+tabelona = analise_mod(glm(df[[coluna_analisada]]~df[['idade']], family='binomial'))
+
+tabelona$indice = NA
+tabelona = tabelona[, c("indice", setdiff(names(tabelona), "indice"))]
+tabelona = tabelona[FALSE, ]
+
+for (coluna in colunas){
+  tabelinha = analise_mod(glm(df[[coluna_analisada]]~df[[coluna]], family='binomial'))
+  
+  tabelinha$indice = row.names(tabelinha)
+  tabelinha = tabelinha[, c("indice", setdiff(names(tabelinha), "indice"))]
+  
+  row.names(tabelinha) = 1:nrow(tabelinha)
+  
+  if (class(df[[coluna]]) != "numeric"){
+    tabelinha = rbind(NA,NA, tabelinha) #adicionando linha
+    tabelinha[["indice"]] = c(coluna,levels(as.factor(df[[coluna]])))
+  }
+  else{
+    tabelinha[["indice"]] = coluna
+  }
+  tabelona = rbind(tabelona, tabelinha)
+}
+tabelona$`Pr(>|z|)` = sapply(tabelona$`Pr(>|z|)`, function(x) ifelse(is.na(x), NA, retorne_p(x)))
+tabelona$OR = paste0( tabelona$OR, ' (', tabelona$`2.5 %`, ' - ', tabelona$`97.5 %`, ')' )
+tabelona$OR[tabelona$OR == 'NA (NA - NA)'] = NA
+tabelona$`2.5 %` = NULL
+tabelona$`97.5 %` = NULL
+tabelona %>% capture()
+
+```
+
+
+```{r}
+colSums(is.na(df[, c("idade", "sexo", "imc", 'dias', "dias_cat", 'dias_cat2')]))
+```
+
+
+```{r Criando Pesos com Propensity Score}
+library(cobalt)
+library(WeightIt)
+
+dff = df
+
+# Transformando todas factor em character
+dff = data.frame(lapply(dff, function(x) {
+  if (is.factor(x)) as.character(x) else x
+}))
+
+# Arrumando niveis
+dff$asa[dff$asa == 'I'] = 1
+dff$asa[dff$asa == 'II'] = 2
+dff$asa = as.numeric(dff$asa)
+dff$ozempic = ifelse(dff$ozempic == '1', 1, 0)
+dff$sexo = ifelse(dff$sexo == 'M', 1, 0)
+
+ps_ipw = weightit(ozempic~idade+sexo+imc+asa, data = dff, estimand = "ATE")
+hist(ps_ipw$weights)
+
+df$weights = ps_ipw$weights
+#####################################################
+
+dados = bal.tab(ps_ipw, un = TRUE)
+df_balance = dados$Balance
+
+df_balance = df_balance %>% mutate(variable = rownames(.))
+df_balance$Type = NULL
+df_balance = df_balance[-1, ]
+
+df_balance$variable
+df_balance = na.omit(df_balance)
+variavels = c("Age (Years)","Sex","BMI (kg.m²)",'ASA')
+
+df_balance$variable = variavels
+df_balance
+
+long_data = tidyr::gather(df_balance, key = "type", value = "value", -variable)
+long_data
+
+ggplot(long_data, aes(y = reorder(variable, value, FUN = mean), x = value, fill = type)) +
+  geom_point(stroke = 1, shape = 21, alpha=0.7, size=3) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", color = "black", size = 0.75) +
+  geom_vline(xintercept = -0.1, linetype = "dashed", color = "black", size = 0.75) +
+  theme_classic(base_family = "Times New Roman") + 
+  theme(legend.position="bottom", plot.title = element_text(hjust = 0.5)) + 
+  labs(title = "Covariate Balancing",
+       y = "Covariates",
+       x = "Standardized Difference (%)",
+       fill = "") +
+  scale_fill_discrete(labels=c("Weighted","Unadjusted")) # +
+  #scale_x_continuous(breaks=seq(from = -0.3, to = 0.3, by = 0.10), limits = c(-0.75, 0.25))
+
+ggsave("balanceamento_variavels.png", height=15, width=15, units="cm", dpi= 600)
+
+
+```
+
+
+```{r ODDS AJUSTADO}
+
+tabelona = analise_mod(glm(df[[coluna_analisada]]~df[['idade']], family='binomial', weights = ps_ipw$weights))
+
+tabelona$indice = NA
+tabelona = tabelona[, c("indice", setdiff(names(tabelona), "indice"))]
+tabelona = tabelona[FALSE, ]
+
+for (coluna in colunas){
+  tabelinha = analise_mod(glm(df[[coluna_analisada]]~df[[coluna]], family='binomial', weights = ps_ipw$weights))
+  
+  tabelinha$indice = row.names(tabelinha)
+  tabelinha = tabelinha[, c("indice", setdiff(names(tabelinha), "indice"))]
+  
+  row.names(tabelinha) = 1:nrow(tabelinha)
+  
+  if (class(df[[coluna]]) != "numeric"){
+    tabelinha = rbind(NA,NA, tabelinha) #adicionando linha
+    tabelinha[["indice"]] = c(coluna,levels(as.factor(df[[coluna]])))
+  }
+  else{
+    tabelinha[["indice"]] = coluna
+  }
+  tabelona = rbind(tabelona, tabelinha)
+}
+tabelona$`Pr(>|z|)` = sapply(tabelona$`Pr(>|z|)`, function(x) ifelse(is.na(x), NA, retorne_p(x)))
+tabelona$OR = paste0( tabelona$OR, ' (', tabelona$`2.5 %`, ' - ', tabelona$`97.5 %`, ')' )
+tabelona$OR[tabelona$OR == 'NA (NA - NA)'] = NA
+tabelona$indice = NULL
+tabelona$`2.5 %` = NULL
+tabelona$`97.5 %` = NULL
+tabelona %>% capture()
+
+```
+
+
+```{r Realizando busca em grade e determinando melhor modelo}
+
+lista_erros = c()
+
+# Carregar pacotes necessários
+library(pROC)
+library(caret)
+library(e1071)
+library(car) #VIF
+
+# Função para ajustar o modelo e calcular as métricas
+calcular_metricas = function(vars) {
+  vars = sort(vars)
+  formula = paste(vars, collapse = "+")
+  formula = as.formula(paste(variavel_dependente, "~", formula))
+  #print(formula)
+  
+  tryCatch({
+    ################################################################################
+    modelo = glm(formula, family = binomial(), data = df, weights = ps_ipw$weights)
+  
+    # Previsões e dados reais
+    #df_clean = df[complete.cases(df[, c(vars, variavel_dependente, 'weights')]), ]
+    df_clean = df[complete.cases(df[, c(variavel_dependente, 'weights')]), ]
+    previsoes = predict(modelo, newdata = df_clean, type = "response")
+    previsoes_bin = ifelse(previsoes > 0.5, 1, 0)
+    dados_reais = df_clean[[variavel_dependente]]
+    
+    # Calcular métricas
+    matrix = confusionMatrix(as.factor(previsoes_bin), as.factor(dados_reais), positive = "1")
+    acuracia = matrix$overall['Accuracy']
+    sensibilidade = matrix$byClass['Sensitivity']  # Precisão é 'Pos Pred Value'
+    especificidade = matrix$byClass['Specificity']
+    auc = roc(dados_reais, previsoes)$auc
+    
+    pseudo_r2_McFadden = 1 - (modelo$deviance / modelo$null.deviance)
+    pseudo_r2_Nagelkerke = PseudoR2(modelo, which = "Nagelkerke")
+    
+    aic = AIC(modelo)
+    bic = BIC(modelo)
+    
+    if (length(vars) > 1){
+      VIF = any(vif(modelo) > 10)
+    } else{ 
+      VIF = FALSE
+    }
+    
+    # Extração dos valores de TP, TN, FP, FN
+    tp = matrix$table[2, 2]
+    tn = matrix$table[1, 1]
+    fp = matrix$table[1, 2]
+    fn = matrix$table[2, 1]
+    
+    
+    return(c(tp, tn, fp, fn, acuracia, sensibilidade, especificidade, auc, pseudo_r2_McFadden, pseudo_r2_Nagelkerke, aic, bic, VIF))
+    
+    ################################################################################
+  }, error = function(e) {
+    formula = paste(sort(vars), collapse = "+")
+    print(paste0('erro com o modelo: ', formula))
+    lista_erros = append(lista_erros, formula)
+    
+    return(c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA))
+  })
+}
+
+# Função que gera matriz da busca em grade
+busca_em_grade = function(variavel_dependente, variaveis_independentes){
+  variaveis_independentes = sort(variaveis_independentes)
+  # Gerando todas as combinações de variáveis independentes
+  combinacoes = lapply(1:length(variaveis_independentes), function(x) combn(variaveis_independentes, x, simplify = FALSE))
+  combinacoes = unlist( combinacoes, recursive = FALSE)
+  
+  # Ajustar modelos para cada combinação e armazenar os resultados
+  resultados = data.frame(Combinacao = character(), 
+                          tp = numeric(), tn = numeric(), fp = numeric(), fn = numeric(),
+                          Acuracia = numeric(), Precisao = numeric(), Especificidade = numeric(), 
+                          AUC_ROC = numeric(), 
+                          Pseudo_R2_McFadden = numeric(), Pseudo_R2_Nagelkerke = numeric(), 
+                          AIC = numeric(), BIC = numeric(), VIF = logical(),
+                          stringsAsFactors = FALSE)
+  
+  for (comb in combinacoes) {
+    existencia = any(tabelona$Combinacao %in% paste(comb, collapse = "+"))
+    
+    if (existencia == F){
+      metricas = calcular_metricas(comb)
+      resultados = rbind(resultados, data.frame(Combinacao = paste(comb, collapse = "+"),
+                                                tp = metricas[1], tn = metricas[2], fp = metricas[3], fn = metricas[4],
+                                                Acuracia = metricas[5], Precisao = metricas[6], Especificidade = metricas[7], 
+                                                AUC_ROC = metricas[8], 
+                                                Pseudo_R2_McFadden = metricas[9], Pseudo_R2_Nagelkerke = metricas[10], 
+                                                AIC = metricas[11], BIC = metricas[12], VIF = metricas[13],
+                                                stringsAsFactors = FALSE))
+    }
+  }
+  
+  resultados = resultados %>% mutate_if(is.numeric, round, digits = 2)
+  
+  return(resultados)
+}
+
+tabelona_backup = data.frame(Combinacao = as.numeric(),
+                      tp = as.numeric(), tn = as.numeric(), fp = as.numeric(), fn = as.numeric(),
+                      Acuracia = as.numeric(), Precisao = as.numeric(), Especificidade = as.numeric(), 
+                      AUC_ROC = as.numeric(), 
+                      Pseudo_R2_McFadden  = as.numeric(), Pseudo_R2_Nagelkerke = as.numeric(), 
+                      AIC = as.numeric(), BIC = as.numeric(), VIF = as.logical())
+
+tabelona = tabelona_backup
+
+# for (imc in c('idade','idade_10em10')){ 
+#   variaveis_independentes2 = append(variaveis_independentes, imc)
+#   variaveis_independentes2 = sort(variaveis_independentes2)
+#   variaveis_independentes2 = variaveis_independentes2[!variaveis_independentes2 %in% variaveis_independentes_retirar]
+#   
+#   tabelinha = busca_em_grade(variavel_dependente, variaveis_independentes2)
+#   tabelona = rbind(tabelona, tabelinha)
+# }  
+# tabelona
+
+```
+
+
+```{r}
+
+##############################################################################################################################
+################################################### CRIAÇÃO
+
+# Definindo a variável dependente e as variáveis independentes
+variavel_dependente = 'altobaixo'
+
+colunas = names(df)
+variaveis_independentes = colunas[!colunas %in% c(variavel_dependente,'solido','liqu','gasoso','inibidor',
+                                                   colunas_idade,colunas_dias,colunas_imc,
+                                                   'weights')]
+variaveis_independentes = sort(variaveis_independentes)
+variaveis_independentes_retirar = c('imc_cat_menor18')#,'idade','dias_cat')
+
+tabelona = tabelona_backup
+for (idade in colunas_idade){
+  variaveis_independentes0 = append(variaveis_independentes, idade)
+  
+  for (dias in colunas_dias){
+    variaveis_independentes1 = append(variaveis_independentes0, dias)
+    
+    for (imc in colunas_imc){
+      variaveis_independentes2 = append(variaveis_independentes1, imc)
+      variaveis_independentes2 = sort(variaveis_independentes2)
+      variaveis_independentes2 = variaveis_independentes2[!variaveis_independentes2 %in% variaveis_independentes_retirar]
+      
+      tabelinha = busca_em_grade(variavel_dependente, variaveis_independentes2)
+      tabelona = rbind(tabelona, tabelinha)
+    }
+  } 
+}
+
+#tabelona = tabelona[!duplicated(tabelona$Combinacao), ] # Removendo linhas duplicadas
+tabelona
+
+```
+
+
+```{r TOP MELHORES 1}
+tabelona = arrange(tabelona, desc(Acuracia), desc(Especificidade), desc(Precisao), AIC, BIC, desc(Pseudo_R2_McFadden), desc(Pseudo_R2_McFadden))
+row.names(tabelona) = 1:nrow(tabelona) # Resetando o nome das linhas
+
+tabelona
+
+for (i in 1:15){
+  variaveis = tabelona$Combinacao[i]
+  formula = as.formula(paste('altobaixo', "~", variaveis))
+  
+  modelo = glm(formula, family = binomial(), data = df, weights = ps_ipw$weights)
+  modelo = modelo %>% analise_mod_antiga()
+  
+  #modelo %>% print()
+  
+  fore_plot(modelo, i) %>% print()
+}
+```
+
+
+```{r TOP MELHORES 1}
+tabelona = arrange(tabelona, AIC, BIC, desc(Pseudo_R2_McFadden), desc(Pseudo_R2_McFadden), desc(Acuracia), desc(Especificidade), desc(Precisao))
+row.names(tabelona) = 1:nrow(tabelona) # Resetando o nome das linhas
+
+tabelona
+
+for (i in 1:15){
+  variaveis = tabelona$Combinacao[i]
+  formula = as.formula(paste('altobaixo', "~", variaveis))
+  
+  modelo = glm(formula, family = binomial(), data = df, weights = ps_ipw$weights)
+  modelo = modelo %>% analise_mod_antiga()
+  
+  #modelo %>% print()
+  
+  fore_plot(modelo) %>% print()
+}
+```
+
+
+
+
+
+```{r Modelos escolhidos}
+modelo = glm(altobaixo~idade+imc+sexo+asa+ozempic, family='binomial', data=df, weights=ps_ipw$weights)
+modelo = modelo %>% analise_mod()
+modelo$`2.5 %` = paste0( modelo$`2.5 %`, ' - ', modelo$`97.5 %`)
+modelo$indice = NULL
+modelo$`97.5 %` = NULL
+modelo %>% capture()
+
+modelo = glm(altobaixo~idade+imc+sexo+asa+dias_cat3, family='binomial', data=df, weights=ps_ipw$weights)
+modelo = modelo %>% analise_mod()
+modelo$`2.5 %` = paste0( modelo$`2.5 %`, ' - ', modelo$`97.5 %`)
+modelo$indice = NULL
+modelo$`97.5 %` = NULL
+modelo %>% capture()
+```
+
+
+```{r Extraindo outras medidas de resumo das variaveis numericas}
+
+col_cat_x = 'altobaixo'
+col_num = 'dias'
+
+min(df[[col_num]])
+max(df[[col_num]])
+
+tabela = df %>% filter(!is.na(!!sym(col_cat_x))) %>% 
+  group_by(!!sym(col_cat_x)) %>%
+  summarise(
+    count = n(),
+    min = min(!!sym(col_num), na.rm = TRUE),
+    max = max(!!sym(col_num), na.rm = TRUE),
+    mean = mean(!!sym(col_num), na.rm = TRUE),
+    sd = sd(!!sym(col_num), na.rm = TRUE),
+    median = median(!!sym(col_num), na.rm = TRUE),
+    q1 = quantile(!!sym(col_num), 0.25, na.rm = TRUE),
+    q3 = quantile(!!sym(col_num), 0.75, na.rm = TRUE)) %>% 
+  mutate(ymin= mean - sd,
+         ymax= mean + sd)
+  tabela$ymin = ifelse(tabela$ymin <= 0, 0.01, tabela$ymin)
+print(tabela)
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+
+modelo = analise_mod(glm(altobaixo~ozempic+idade+imc+sexo+asa, family='binomial', data=df, weights = ps_ipw$weights))
+modelo 
+
+modelo = analise_mod(glm(altobaixo~ozempic+idade+imc+asa, family='binomial', data=df, weights = ps_ipw$weights))
+modelo ############### USAR
+
+##########
+#step(modelo, direction = "backward", test = "F")
+```
+
+
+```{r ENTER WARD}
+glm(altobaixo ~ ozempic+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights=ps_ipw$weights) %>% analise_mod() %>% capture()
+
+glm(altobaixo ~ dias+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights=ps_ipw$weights) %>% analise_mod() %>% capture()
+
+glm(altobaixo ~ as.factor(dias_cat)+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights=ps_ipw$weights) %>% analise_mod() %>% capture()
+
+glm(altobaixo ~ as.factor(dias_cat2)+idade+imc+dm+as.factor(asa), family='binomial', data=df, weights=ps_ipw$weights) %>% analise_mod() %>% capture()
+
+```
+
+```{r}
+df$altobaixo2 = ifelse(df$altobaixo == 1, 'Residual', 'No Residual')
+
+col_num = 'dias'
+col_cat = 'altobaixo2'
+
+rotulo0 = 'No (5.00 [IQR 3.50 - 7.00])'
+rotulo1 = 'Yes (4.00 [IQR 3.00 - 6.00])'
+
+ggplot(df, aes(x=as.factor(!!sym(col_cat)), y=!!sym(col_num), fill=as.factor(!!sym(col_cat)))) + 
+    # Graficos
+    geom_jitter(alpha=0.5, show.legend=F, size=2.5, position=position_jitter(0.25)) +
+    geom_violin(alpha=0.2, show.legend=F, fill='white') +
+    geom_boxplot(alpha=0.8, show.legend=F, width=0.5) + #outlier.shape = NA
+    # Outros
+    theme_classic(base_family = "Times New Roman") + theme(legend.position = "bottom") +
+    scale_x_discrete(labels = c(rotulo0, rotulo1)) +
+    scale_fill_manual(values=c("#DF5474","#118ab2")) +
+    labs(x='Increased residual gastric content on gastric ultrasound', 
+         y='Time since the last dose of semaglutide (days)', title=NULL)#, subtitle=subtitulo)
+
+ggsave("resido_vs_dias.png", height=10, width=10.5, units="cm", dpi= 600)
+
+```
+
+```{r}
+conti_grafi(df, 'altobaixo', 'dias_cat2', 'row') + 
+  scale_fill_discrete(labels = c('No Semaglutide use','1-7 Days','8-10 Days')) +
+  labs(subtitle = NULL)
+
+#ggsave("altobaixo_vs_dias_cat2.png", height=10, width=15, units="cm", dpi= 600)
+```
+
+
+
+```{r}
+cont(df, 'altobaixo')
+cont_grafi(df, 'altobaixo')
+
+conti(df, 'altobaixo', 'dias_cat2', 'row')
+conti_grafi(df, 'altobaixo', 'dias_cat2', 'row')
+
+conti(df, 'altobaixo', 'dias_cat2', 'col')
+conti_grafi(df, 'altobaixo', 'dias_cat2', 'col')
+
+box_vin_jit(df, 'dias', 'altobaixo') #usar esse grafico
+
+dinamite(df, 'dias', 'altobaixo', 'sexo')
+
+densidade_grafi(df, 'dias', 'altobaixo')
+```
+
+
+```{r}
+
+tabela = df %>% filter(!is.na(dias)) %>% group_by(dias, altobaixo) %>% summarise(n = n()) %>% mutate(Freq = round(n/sum(n)*100, 2)) %>% ungroup() %>% filter(altobaixo == 1)
+
+# Para correlação de Pearson
+teste_pearson = cor.test(tabela$dias, tabela$Freq, method="pearson")
+print(paste0("Correlação de Pearson: ", teste_pearson$estimate))
+print(paste0("Valor-p: ", teste_pearson$p.value))
+
+# Para correlação de Spearman
+teste_spearman = cor.test(tabela$dias, tabela$Freq, method="spearman")
+print(paste0("Correlação de Spearman: ", teste_spearman$estimate))
+print(paste0("Valor-p: ", teste_spearman$p.value))
+
+lm(tabela$dias~tabela$Freq) %>% summary()
+
+ggplot(tabela, aes(x=dias, y=Freq)) + 
+  # Grafico
+  geom_point() + geom_smooth(method='lm') +
+  # Outros
+  theme_classic(base_family = "Times New Roman") + theme(legend.position = "bottom") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_y_continuous(limits = c(0, 100), breaks=seq(from=0, to=100, by=10)) +
+  scale_x_continuous(limits = c(1, 10), breaks=seq(from=0, to=100, by=1)) +
+  labs(x='Time since the last dose of semaglutide', 
+       y='Increased residual gastric content on gastric ultrasound (%)', title=NULL, fill=NULL)
+
+ggsave("altobaixo_vs_dias_cat.png", height=10.5, width=15, units="cm", dpi= 600)
+```
+
+```{r}
+df$dias = df$dias %>% as.factor()
+df$dias %>% levels()
+
+conti(df, 'altobaixo', 'dias', sentido_percent = 'row')
+modelo = glm(altobaixo~dias, family='binomial', data=df)
+modelo %>% analise_mod()
+
+```
+
+```{r}
+#######################################################################################################
+#								Multiple Comparisons using multcomp in R
+#######################################################################################################
+
+# Carregar o pacote necessário
+if (!requireNamespace("multcomp", quietly = TRUE)) install.packages("multcomp")
+library(multcomp)
+
+# Ajustar um modelo linear generalizado
+glm_model = glm(df$altobaixo ~ dias, family = binomial, data = df)
+
+# Realizar comparações múltiplas
+comp = glht(glm_model, linfct = mcp(dias = "Tukey"))
+
+# Sumarizar os resultados das comparações múltiplas
+summary(comp)
+
+
+
+#######################################################################################################
+#							pairwise Nominal Independence with rcompanion
+#######################################################################################################
+
+if (!requireNamespace("rcompanion", quietly = TRUE)) install.packages("rcompanion")
+library(rcompanion)
+
+tabela = table(df$dias, df$altobaixo)
+
+resultados = pairwiseNominalIndependence(tabela,
+                            fisher = FALSE,
+                            gtest  = FALSE,
+                            chisq  = TRUE,
+                            method = "holm")
+
+resultados = apply_retorne_p(resultados, "p.Chisq")
+resultados = apply_retorne_p(resultados, "p.adj.Chisq")
+resultados
+
+#######################################################################################################
+#									pairwise.prop.test in R
+#######################################################################################################
+
+tabela = table(df$dias, df$altobaixo)
+
+pairwise.prop.test(tabela)
+
+#######################################################################################################
+#								Anova
+#######################################################################################################
+
+resultados = aov(formula = as.numeric(df$altobaixo)~df$dias, data = df) 
+resultados %>% summary()
+resultados %>% TukeyHSD()
+```
+
+```{r}
+```
+
+
+```{r}
+```
+
+```{r}
+
+summary_numerico_por_grupo_n_parametrico(df, 'dias', 'altobaixo')
+
+
+```
+
+```{r}
+
+df$
+coluna_analisada = 'dias_cat2'
+
+
+conti(df, 'ozempic', 'altobaixo')# %>% capture()
+
+conti(df, 'dias_cat3', 'altobaixo')# %>% capture()
+
+#
+modelo = glm(altobaixo~dias_cat3, family='binomial', data=df, weights=ps_ipw$weights)
+modelo = modelo %>% analise_mod()
+modelo$`2.5 %` = paste0( modelo$`2.5 %`, ' - ', modelo$`97.5 %`)
+modelo$indice = NULL
+modelo$`97.5 %` = NULL
+modelo %>% capture()
+```
+
+```{r}
+```
+
+
+```{r}
+```
+
+```{r}
+
+```
+
+```{r}
+ 
+```
+
+```{r}
+```
+
+
+```{r}
+```
+
+```{r}
+
+```
+
+```{r}
+ 
+```
+
+```{r}
+```
+
+
+```{r}
+```
+
